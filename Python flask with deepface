@@ -1,0 +1,339 @@
+
+==================================================================== PYTHON ============================================================
+
+// flask app.py file
+
+
+# # app.py
+# from flask import Flask
+
+# app = Flask(__name__)
+
+# @app.route("/")
+# def home():
+#     return "Hello, Flask!"
+
+# if __name__ == "__main__":
+#     app.run(debug=True)
+
+
+# from flask import Flask, request, jsonify
+# import base64
+# import io
+# import psycopg2
+# from PIL import Image
+# import numpy as np
+# from deepface import DeepFace
+
+# app = Flask(__name__)
+
+# # PostgreSQL connection parameters
+# DB_CONFIG = {
+#     'dbname': 'face-detect',      # replace with your database name
+#     'user': 'postgres',      # replace with your database username
+#     'password': 'piyush@l1',  # replace with your database password
+#     'host': 'localhost',      # replace with your host
+#     'port': '5432'            # replace with your port if different
+# }
+
+# # Helper function to decode base64 image string to PIL Image
+# def decode_base64_image(base64_string):
+#     # Remove the data URI scheme if it exists (e.g., "data:image/jpeg;base64,...")
+#     if base64_string.startswith("data:image"):
+#         base64_string = base64_string.split(",")[1]
+#     # Decode the base64 string to image data
+#     image_data = base64.b64decode(base64_string)
+#     return Image.open(io.BytesIO(image_data)).convert("RGB")  # Ensure RGB format
+
+# @app.route('/face-login', methods=['POST'])
+# def face_login():
+#     try:
+#         # Get the base64 image from the POST request
+#         data = request.get_json()
+#         input_base64 = data.get('image1.png')
+
+#         if not input_base64:
+#             return jsonify({'error': 'No image provided'}), 400
+
+#         # Convert input image to NumPy format for DeepFace comparison
+#         input_image = decode_base64_image(input_base64)
+#         input_image_np = np.array(input_image)
+
+#         # Connect to PostgreSQL
+#         conn = psycopg2.connect(**DB_CONFIG)
+#         cur = conn.cursor()
+
+#         # Fetch all user images (in base64 format) from the database
+#         cur.execute("SELECT id, user_image FROM student;")  # Assuming 'student' table and 'user_image' column
+#         users = cur.fetchall()
+
+#         # Loop through the users and compare the uploaded image with stored images
+#         for user in users:
+#             id, user_image = user
+
+#             try:
+#                 # Decode the stored base64 image from the database
+#                 stored_image = decode_base64_image(user_image)
+#                 stored_image_np = np.array(stored_image)
+
+#                 # Perform the face verification using DeepFace
+#                 result = DeepFace.verify(
+#                     img1_path=input_image_np,
+#                     img2_path=stored_image_np,
+#                     enforce_detection=False  # If False, DeepFace won't check for a face in the image
+#                 )
+
+#                 # If the faces match, return the user_id
+#                 if result.get("verified"):
+#                     cur.close()
+#                     conn.close()
+#                     return jsonify({'status': 'success', 'user_id': id})
+
+#             except Exception as face_error:
+#                 print(f"Error comparing face for user ID {id}: {face_error}")
+#                 continue
+
+#         # No match found after checking all users
+#         cur.close()
+#         conn.close()
+#         return jsonify({'status': 'fail', 'message': 'No matching face found'})
+
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
+
+# if __name__ == '__main__':
+#     app.run(debug=True)
+# from flask import Flask, request, jsonify
+# import base64
+# import io
+# import psycopg2
+# from PIL import Image
+# import numpy as np
+# from deepface import DeepFace
+
+# app = Flask(__name__)
+
+# # PostgreSQL connection parameters
+# DB_CONFIG = {
+#     'dbname': 'face-detect',      # Replace with your database name
+#     'user': 'postgres',           # Replace with your database username
+#     'password': 'piyush@l1',      # Replace with your database password
+#     'host': 'localhost',          # Replace with your host
+#     'port': '5432'                # Replace with your port if different
+# }
+
+# # Helper function to decode byte[] to PIL Image
+# def decode_bytes_to_image(byte_data):
+#     return Image.open(io.BytesIO(byte_data)).convert("RGB")  # Convert to RGB format
+
+# @app.route('/face-login', methods=['POST'])
+# def face_login():
+#     try:
+#         # Get the base64 image from the POST request
+#         # data = request.get_json()
+#         # input_base64 = data.get('image1.png')  # Get the base64 string (from the client)
+
+#          img1_path = "image1.png",
+
+#         if not input_base64:
+#             return jsonify({'error': 'No image provided'}), 400
+
+#         # Convert input image from base64 to byte[] and then to PIL Image
+#         input_image_data = base64.b64decode(input_base64)
+#         input_image = decode_bytes_to_image(input_image_data)
+#         input_image_np = np.array(input_image)
+
+#         # Connect to PostgreSQL
+#         conn = psycopg2.connect(**DB_CONFIG)
+#         cur = conn.cursor()
+
+#         # Fetch all user images (in byte[] format) from the database
+#         cur.execute("SELECT id, user_image FROM student;")  # Assuming 'student' table and 'user_image' column
+#         users = cur.fetchall()
+
+#         # Loop through the users and compare the uploaded image with stored images
+#         for user in users:
+#             user_id, stored_image_data = user  # stored_image_data is the byte[] from the DB
+
+#             try:
+#                 # Decode the stored byte[] image from the database
+#                 stored_image = decode_bytes_to_image(stored_image_data)
+#                 stored_image_np = np.array(stored_image)
+
+#                 # Perform the face verification using DeepFace
+#                 result = DeepFace.verify(
+#                     img1_path=input_image_np,
+#                     img2_path=stored_image_np,
+#                     enforce_detection=False  # If False, DeepFace won't check for a face in the image
+#                 )
+
+#                 # If the faces match, return the user_id
+#                 if result.get("verified"):
+#                     cur.close()
+#                     conn.close()
+#                     return jsonify({'status': 'success', 'user_id': user_id})
+
+#             except Exception as face_error:
+#                 print(f"Error comparing face for user ID {user_id}: {face_error}")
+#                 continue
+
+#         # No match found after checking all users
+#         cur.close()
+#         conn.close()
+#         return jsonify({'status': 'fail', 'message': 'No matching face found'})
+
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
+
+# if __name__ == '__main__':
+#     app.run(debug=True)
+
+
+# from flask import Flask, jsonify
+# import io
+# import psycopg2
+# from PIL import Image
+# import numpy as np
+# from deepface import DeepFace
+
+# app = Flask(__name__)
+
+# # PostgreSQL connection parameters
+# DB_CONFIG = {
+#     'dbname': 'face-detect',
+#     'user': 'postgres',
+#     'password': 'Piyush@l1',
+#     'host': 'localhost',
+#     'port': '5432'
+# }
+
+# # Helper function to decode byte[] to PIL Image
+# def decode_bytes_to_image(byte_data):
+#     return Image.open(io.BytesIO(byte_data)).convert("RGB")
+
+# @app.route('/face-login', methods=['POST'])  # You can change to POST if needed
+# def face_login():
+#     try:
+#         # Load the image from file
+#         input_image = Image.open("image3.png").convert("RGB")
+#         input_image_np = np.array(input_image)
+
+#         # Connect to PostgreSQL
+#         conn = psycopg2.connect(**DB_CONFIG)
+#         cur = conn.cursor()
+
+#         # Fetch all user images from the database
+#         cur.execute("SELECT id, user_image FROM student;")
+#         users = cur.fetchall()
+
+#         for user in users:
+#             user_id, stored_image_data = user
+
+#             try:
+#                 # Convert stored byte[] image to PIL and then NumPy
+#                 stored_image = decode_bytes_to_image(stored_image_data)
+#                 stored_image_np = np.array(stored_image)
+
+#                 # Face verification
+#                 result = DeepFace.verify(
+#                     img1_path=input_image_np,
+#                     img2_path=stored_image_np,
+#                     enforce_detection=False
+#                 )
+
+#                 if result.get("verified"):
+#                     cur.close()
+#                     conn.close()
+#                     return jsonify({'status': 'success', 'user_id': user_id})
+
+#             except Exception as face_error:
+#                 print(f"Face compare error for user {user_id}: {face_error}")
+#                 continue
+
+#         cur.close()
+#         conn.close()
+#         return jsonify({'status': 'fail', 'message': 'No matching face found'})
+
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
+
+# if __name__ == '__main__':
+#     app.run(debug=True)
+
+
+
+from flask import Flask, request, jsonify
+import io
+import psycopg2
+from PIL import Image
+import numpy as np
+from deepface import DeepFace
+
+app = Flask(__name__)
+
+# PostgreSQL connection parameters
+DB_CONFIG = {
+    'dbname': 'face-detect',
+    'user': 'postgres',
+    'password': 'Piyush@l1',
+    'host': 'localhost',
+    'port': '5432'
+}
+
+# Decode byte[] to PIL Image
+def decode_bytes_to_image(byte_data):
+    return Image.open(io.BytesIO(byte_data)).convert("RGB")
+
+@app.route('/face-login', methods=['POST'])
+def face_login():
+    try:
+        # Read raw byte[] image from request body
+        input_image = decode_bytes_to_image(request.data)
+        input_image_np = np.array(input_image)
+
+        # Connect to PostgreSQL
+        conn = psycopg2.connect(**DB_CONFIG)
+        cur = conn.cursor()
+
+        cur.execute("SELECT id, user_image FROM student;")
+        users = cur.fetchall()
+
+        for user in users:
+            user_id, stored_image_data = user
+
+            try:
+                stored_image = decode_bytes_to_image(stored_image_data)
+                stored_image_np = np.array(stored_image)
+
+                result = DeepFace.verify(
+                    img1_path=input_image_np,
+                    img2_path=stored_image_np,
+                    enforce_detection=False
+                )
+
+                if result.get("verified"):
+                    cur.close()
+                    conn.close()
+                    return jsonify({'status': 'success'})
+
+            except Exception as face_error:
+                print(f"Face compare error for user {user_id}: {face_error}")
+                continue
+
+        cur.close()
+        conn.close()
+        return jsonify({'status': 'fail'})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+ ============================================================================= JAVA ===============================================================
+
+see in java face repository
+
+
