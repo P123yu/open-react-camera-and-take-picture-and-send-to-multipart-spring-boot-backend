@@ -1,0 +1,140 @@
+import axios from "axios";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+const LoginThroughImage = () => {
+  const navigate = useNavigate();
+  const videoRef = useRef(null); // Ref for the video element
+  const canvasRef = useRef(null); // Ref for the canvas element
+  const streamRef = useRef(null); // Ref for the media stream
+  const [imageData, setImageData] = useState("");
+  const [isSending, setIsSending] = useState(false); // Track if the image is being sent
+
+  // Function to capture the image and send it automatically
+  const captureImageAndSend = () => {
+    if (isSending) return; // Prevent starting new capture if the previous one is still in progress
+
+    setIsSending(true); // Mark sending in progress
+
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+
+    if (canvas && video) {
+      // Set the canvas size to match the video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Draw the current frame from the video onto the canvas
+      const context = canvas.getContext("2d");
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Get the image data as a data URL (base64 string)
+      const imageData = canvas.toDataURL("image/png");
+      setImageData(imageData);
+
+      // Convert base64 to a Blob
+      const byteCharacters = atob(imageData.split(",")[1]); // Remove the "data:image/png;base64," part
+      const byteArrays = new Uint8Array(byteCharacters.length);
+
+      // Create a Uint8Array from the base64 string
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteArrays[i] = byteCharacters.charCodeAt(i);
+      }
+
+      // Create the Blob from the byte array
+      const blob = new Blob([byteArrays], { type: "image/png" });
+
+      // Prepare the FormData
+      const formData = new FormData();
+      formData.append("file", blob, "captured_image.png"); // The third argument is the file name
+
+      // Send the data via Axios POST
+      axios
+        .post("http://localhost:8080/student/send", formData)
+        .then((res) => {
+          console.log(res?.data);
+          if (res?.data?.status === "success") {
+            navigate("/after-login"); // Redirect after sending
+          }
+        })
+        .catch((err) => {
+          console.error("Error sending image", err);
+          alert("Failed to send image.");
+        })
+        .finally(() => {
+          setIsSending(false); // Mark sending complete
+        });
+    }
+  };
+
+  useEffect(() => {
+    // 🎥 Get camera access
+    const enableCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          console.log("Webcam feed is live and displayed.");
+        } else {
+          console.error("Video element not found.");
+        }
+
+        streamRef.current = stream;
+      } catch (err) {
+        console.error("Camera permission error:", err);
+        alert("Camera access is required.");
+      }
+    };
+
+    enableCamera();
+
+    // Set interval to automatically capture and send image every 2 seconds
+    const intervalId = setInterval(() => {
+      captureImageAndSend();
+    }, 2000); // 2000ms = 2 seconds
+
+    // Cleanup when the component is unmounted
+    return () => {
+      // Stop webcam on unmount
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+
+      // Clear the interval when the component is unmounted
+      clearInterval(intervalId);
+    };
+  }, [isSending]); // Re-run the effect when sending status changes
+
+  return (
+    <div style={{ position: "relative" }}>
+      {/* Camera Feed */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        style={{
+          position: "absolute",
+          top: "-70px",
+          right: "10px",
+          width: "320px",
+          height: "240px",
+          borderRadius: "8px",
+          border: "2px solid #fff",
+          zIndex: 1000,
+          backgroundColor: "#000", // Ensures a black background for the video if no stream is available
+        }}
+      />
+
+      {/* Canvas element to draw captured image */}
+      <canvas
+        ref={canvasRef}
+        style={{ display: "none" }} // Hide the canvas since it's only used for capturing
+      ></canvas>
+    </div>
+  );
+};
+
+export default LoginThroughImage;
