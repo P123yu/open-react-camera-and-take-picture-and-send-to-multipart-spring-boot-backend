@@ -1,0 +1,585 @@
+// capture-image
+
+import axios from "axios";
+import { useEffect, useRef, useState } from "react";
+
+const CaptureImage = () => {
+  const videoRef = useRef(null); // Ref for the video element
+  const canvasRef = useRef(null); // Ref for the canvas element
+  const streamRef = useRef(null); // Ref for the media stream
+
+  const [imageData, setImageData] = useState("");
+
+  // Function to capture the image when the button is clicked
+  const captureImage = () => {
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+
+    if (canvas && video) {
+      // Set the canvas size to match the video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Draw the current frame from the video onto the canvas
+      const context = canvas.getContext("2d");
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Get the image data as a data URL (base64 string)
+      const imageData = canvas.toDataURL("image/png");
+
+      // Log the captured image to the console
+      console.log(imageData);
+
+      setImageData(imageData);
+    }
+  };
+
+  useEffect(() => {
+    // 🎥 Get camera access
+    const enableCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          console.log("Webcam feed is live and displayed.");
+        } else {
+          console.error("Video element not found.");
+        }
+
+        streamRef.current = stream;
+      } catch (err) {
+        console.error("Camera permission error:", err);
+        alert("Camera access is required for the exam.");
+      }
+    };
+
+    enableCamera();
+
+    // Cleanup when the component is unmounted
+    return () => {
+      // Stop webcam on unmount
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  // const handleSubmit = () => {
+  //   // Convert base64 to a Blob
+  //   const byteCharacters = atob(imageData.split(",")[1]); // Remove the "data:image/png;base64," part
+  //   const byteArrays = [];
+
+  //   // Convert the base64 string into a byte array
+  //   for (let offset = 0; offset < byteCharacters.length; offset += 1024) {
+  //     const slice = byteCharacters.slice(offset, offset + 1024);
+  //     const byteNumbers = new Array(slice.length);
+  //     for (let i = 0; i < slice.length; i++) {
+  //       byteNumbers[i] = slice.charCodeAt(i);
+  //     }
+  //     byteArrays.push(new Uint8Array(byteNumbers));
+  //   }
+
+  //   // Create a Blob object from the byte array
+  //   const blob = new Blob(byteArrays, { type: "image/png" });
+
+  //   // Prepare the FormData
+  //   const formData = new FormData();
+  //   formData.append("file", blob, "captured_image.png"); // The third argument is the file name
+
+  //   // Send the data via Axios POST
+  //   axios
+  //     .post("http://localhost:8080/student/send", formData)
+  //     .then((res) => {
+  //       console.log(res?.data);
+  //       alert("Image sent successfully!");
+  //     })
+  //     .catch((err) => {
+  //       console.error("Error sending image", err);
+  //       alert("Failed to send image.");
+  //     });
+  // };
+
+  const handleSubmit = () => {
+    // Convert base64 to a Blob
+    const byteCharacters = atob(imageData.split(",")[1]); // Remove the "data:image/png;base64," part
+    const byteArrays = new Uint8Array(byteCharacters.length);
+
+    // Create a Uint8Array from the base64 string
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArrays[i] = byteCharacters.charCodeAt(i);
+    }
+
+    // Create the Blob from the byte array
+    const blob = new Blob([byteArrays], { type: "image/png" });
+
+    // Prepare the FormData
+    const formData = new FormData();
+    formData.append("file", blob, "captured_image.png"); // The third argument is the file name
+
+    // Send the data via Axios POST
+    axios
+      .post("http://localhost:8080/student/send", formData)
+      .then((res) => {
+        console.log(res?.data);
+        alert("Image sent successfully!");
+      })
+      .catch((err) => {
+        console.error("Error sending image", err);
+        alert("Failed to send image.");
+      });
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      {/* Camera Feed */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        style={{
+          position: "absolute",
+          top: "-70px",
+          right: "10px",
+          width: "320px",
+          height: "240px",
+          borderRadius: "8px",
+          border: "2px solid #fff",
+          zIndex: 1000,
+          backgroundColor: "#000", // Ensures a black background for the video if no stream is available
+        }}
+      />
+
+      {/* Canvas element to draw captured image */}
+      <canvas
+        ref={canvasRef}
+        style={{ display: "none" }} // Hide the canvas since it's only used for capturing
+      ></canvas>
+
+      {/* Capture Button */}
+      <button
+        onClick={captureImage}
+        style={{
+          position: "absolute",
+          top: "10px",
+          left: "10px",
+          zIndex: 1001,
+          padding: "10px",
+          backgroundColor: "#4CAF50",
+          color: "white",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+        }}
+      >
+        Capture
+      </button>
+
+      <p onClick={handleSubmit} style={{ paddingTop: "200px" }}>
+        Submit
+      </p>
+    </div>
+  );
+};
+
+export default CaptureImage;
+
+
+
+
+
+
+
+
+// login via image
+
+import axios from "axios";
+import { useEffect, useRef, useState } from "react";
+
+const LoginThroughImage = () => {
+  const videoRef = useRef(null); // Ref for the video element
+  const canvasRef = useRef(null); // Ref for the canvas element
+  const streamRef = useRef(null); // Ref for the media stream
+
+  const [imageData, setImageData] = useState("");
+
+  // Function to capture the image when the button is clicked
+  const captureImage = () => {
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+
+    if (canvas && video) {
+      // Set the canvas size to match the video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Draw the current frame from the video onto the canvas
+      const context = canvas.getContext("2d");
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Get the image data as a data URL (base64 string)
+      const imageData = canvas.toDataURL("image/png");
+
+      // Log the captured image to the console
+      console.log(imageData);
+
+      setImageData(imageData);
+    }
+  };
+
+  useEffect(() => {
+    // 🎥 Get camera access
+    const enableCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          console.log("Webcam feed is live and displayed.");
+        } else {
+          console.error("Video element not found.");
+        }
+
+        streamRef.current = stream;
+      } catch (err) {
+        console.error("Camera permission error:", err);
+        alert("Camera access is required for the exam.");
+      }
+    };
+
+    enableCamera();
+
+    // Cleanup when the component is unmounted
+    return () => {
+      // Stop webcam on unmount
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  // const handleSubmit = () => {
+  //   // Convert base64 to a Blob
+  //   const byteCharacters = atob(imageData.split(",")[1]); // Remove the "data:image/png;base64," part
+  //   const byteArrays = [];
+
+  //   // Convert the base64 string into a byte array
+  //   for (let offset = 0; offset < byteCharacters.length; offset += 1024) {
+  //     const slice = byteCharacters.slice(offset, offset + 1024);
+  //     const byteNumbers = new Array(slice.length);
+  //     for (let i = 0; i < slice.length; i++) {
+  //       byteNumbers[i] = slice.charCodeAt(i);
+  //     }
+  //     byteArrays.push(new Uint8Array(byteNumbers));
+  //   }
+
+  //   // Create a Blob object from the byte array
+  //   const blob = new Blob(byteArrays, { type: "image/png" });
+
+  //   // Prepare the FormData
+  //   const formData = new FormData();
+  //   formData.append("file", blob, "captured_image.png"); // The third argument is the file name
+
+  //   // Send the data via Axios POST
+  //   axios
+  //     .post("http://localhost:8080/student/send", formData)
+  //     .then((res) => {
+  //       console.log(res?.data);
+  //       alert("Image sent successfully!");
+  //     })
+  //     .catch((err) => {
+  //       console.error("Error sending image", err);
+  //       alert("Failed to send image.");
+  //     });
+  // };
+
+  const handleSubmit = () => {
+    // Convert base64 to a Blob
+    const byteCharacters = atob(imageData.split(",")[1]); // Remove the "data:image/png;base64," part
+    const byteArrays = new Uint8Array(byteCharacters.length);
+
+    // Create a Uint8Array from the base64 string
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArrays[i] = byteCharacters.charCodeAt(i);
+    }
+
+    // Create the Blob from the byte array
+    const blob = new Blob([byteArrays], { type: "image/png" });
+
+    // Prepare the FormData
+    const formData = new FormData();
+    formData.append("file", blob, "captured_image.png"); // The third argument is the file name
+
+    // Send the data via Axios POST
+    axios
+      .post("http://localhost:8080/student/create", formData)
+      .then((res) => {
+        console.log(res?.data);
+        alert("Image sent successfully!");
+      })
+      .catch((err) => {
+        console.error("Error sending image", err);
+        alert("Failed to send image.");
+      });
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      {/* Camera Feed */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        style={{
+          position: "absolute",
+          top: "-70px",
+          right: "10px",
+          width: "320px",
+          height: "240px",
+          borderRadius: "8px",
+          border: "2px solid #fff",
+          zIndex: 1000,
+          backgroundColor: "#000", // Ensures a black background for the video if no stream is available
+        }}
+      />
+
+      {/* Canvas element to draw captured image */}
+      <canvas
+        ref={canvasRef}
+        style={{ display: "none" }} // Hide the canvas since it's only used for capturing
+      ></canvas>
+
+      {/* Capture Button */}
+      <button
+        onClick={captureImage}
+        style={{
+          position: "absolute",
+          top: "10px",
+          left: "10px",
+          zIndex: 1001,
+          padding: "10px",
+          backgroundColor: "#4CAF50",
+          color: "white",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+        }}
+      >
+        Capture
+      </button>
+
+      <p onClick={handleSubmit} style={{ paddingTop: "200px" }}>
+        Submit
+      </p>
+    </div>
+  );
+};
+
+export default LoginThroughImage;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import axios from "axios";
+import { useEffect, useRef, useState } from "react";
+
+const CaptureImage = () => {
+  const videoRef = useRef(null); // Ref for the video element
+  const canvasRef = useRef(null); // Ref for the canvas element
+  const streamRef = useRef(null); // Ref for the media stream
+
+  const [imageData, setImageData] = useState("");
+
+  // Function to capture the image when the button is clicked
+  const captureImage = () => {
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+
+    if (canvas && video) {
+      // Set the canvas size to match the video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Draw the current frame from the video onto the canvas
+      const context = canvas.getContext("2d");
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Get the image data as a data URL (base64 string)
+      const imageData = canvas.toDataURL("image/png");
+
+      // Log the captured image to the console
+      console.log(imageData);
+
+      setImageData(imageData);
+    }
+  };
+
+  useEffect(() => {
+    // 🎥 Get camera access
+    const enableCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          console.log("Webcam feed is live and displayed.");
+        } else {
+          console.error("Video element not found.");
+        }
+
+        streamRef.current = stream;
+      } catch (err) {
+        console.error("Camera permission error:", err);
+        alert("Camera access is required for the exam.");
+      }
+    };
+
+    enableCamera();
+
+    // Cleanup when the component is unmounted
+    return () => {
+      // Stop webcam on unmount
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  // const handleSubmit = () => {
+  //   // Convert base64 to a Blob
+  //   const byteCharacters = atob(imageData.split(",")[1]); // Remove the "data:image/png;base64," part
+  //   const byteArrays = [];
+
+  //   // Convert the base64 string into a byte array
+  //   for (let offset = 0; offset < byteCharacters.length; offset += 1024) {
+  //     const slice = byteCharacters.slice(offset, offset + 1024);
+  //     const byteNumbers = new Array(slice.length);
+  //     for (let i = 0; i < slice.length; i++) {
+  //       byteNumbers[i] = slice.charCodeAt(i);
+  //     }
+  //     byteArrays.push(new Uint8Array(byteNumbers));
+  //   }
+
+  //   // Create a Blob object from the byte array
+  //   const blob = new Blob(byteArrays, { type: "image/png" });
+
+  //   // Prepare the FormData
+  //   const formData = new FormData();
+  //   formData.append("file", blob, "captured_image.png"); // The third argument is the file name
+
+  //   // Send the data via Axios POST
+  //   axios
+  //     .post("http://localhost:8080/student/send", formData)
+  //     .then((res) => {
+  //       console.log(res?.data);
+  //       alert("Image sent successfully!");
+  //     })
+  //     .catch((err) => {
+  //       console.error("Error sending image", err);
+  //       alert("Failed to send image.");
+  //     });
+  // };
+
+  const handleSubmit = () => {
+    // Convert base64 to a Blob
+    const byteCharacters = atob(imageData.split(",")[1]); // Remove the "data:image/png;base64," part
+    const byteArrays = new Uint8Array(byteCharacters.length);
+
+    // Create a Uint8Array from the base64 string
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArrays[i] = byteCharacters.charCodeAt(i);
+    }
+
+    // Create the Blob from the byte array
+    const blob = new Blob([byteArrays], { type: "image/png" });
+
+    // Prepare the FormData
+    const formData = new FormData();
+    formData.append("file", blob, "captured_image.png"); // The third argument is the file name
+
+    // Send the data via Axios POST
+    axios
+      .post("http://localhost:8080/student/send", formData)
+      .then((res) => {
+        console.log(res?.data);
+        alert("Image sent successfully!");
+      })
+      .catch((err) => {
+        console.error("Error sending image", err);
+        alert("Failed to send image.");
+      });
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      {/* Camera Feed */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        style={{
+          position: "absolute",
+          top: "-70px",
+          right: "10px",
+          width: "320px",
+          height: "240px",
+          borderRadius: "8px",
+          border: "2px solid #fff",
+          zIndex: 1000,
+          backgroundColor: "#000", // Ensures a black background for the video if no stream is available
+        }}
+      />
+
+      {/* Canvas element to draw captured image */}
+      <canvas
+        ref={canvasRef}
+        style={{ display: "none" }} // Hide the canvas since it's only used for capturing
+      ></canvas>
+
+      {/* Capture Button */}
+      <button
+        onClick={captureImage}
+        style={{
+          position: "absolute",
+          top: "10px",
+          left: "10px",
+          zIndex: 1001,
+          padding: "10px",
+          backgroundColor: "#4CAF50",
+          color: "white",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+        }}
+      >
+        Capture
+      </button>
+
+      <p onClick={handleSubmit} style={{ paddingTop: "200px" }}>
+        Submit
+      </p>
+    </div>
+  );
+};
+
+export default CaptureImage;
